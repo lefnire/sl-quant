@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-from __future__ import print_function
 
+import os
 import numpy as np
 np.random.seed(1335)  # for reproducibility
 np.set_printoptions(precision=5, suppress=True, linewidth=150)
@@ -12,7 +12,7 @@ from sklearn import metrics, preprocessing
 from talib.abstract import *
 from sklearn.externals import joblib
 
-import Quandl
+import quandl
 
 '''
 Name:        The Self Learning Quant, Example 3
@@ -32,18 +32,18 @@ TA-Lib, instructions at https://mrjbq7.github.io/ta-lib/install.html
 Keras, https://keras.io/
 Quandl, https://www.quandl.com/tools/python
 backtest.py from the TWP library. Download backtest.py and put in the same folder
-
-/plt create a subfolder in the same directory where plot files will be saved
-
 '''
+
+if not os.path.exists('./plt'): os.makedirs('./plt')
+if not os.path.exists('./data'): os.makedirs('./data')
 
 #Load data
 def read_convert_data(symbol='XBTEUR'):
     if symbol == 'XBTEUR':
-        prices = Quandl.get("BCHARTS/KRAKENEUR")
-        prices.to_pickle('data/XBTEUR_1day.pkl') # a /data folder must exist
+        prices = quandl.get("BCHARTS/KRAKENEUR")
+        prices.to_pickle('data/XBTEUR_1day.pkl')
     if symbol == 'EURUSD_1day':
-        #prices = Quandl.get("ECB/EURUSD")
+        #prices = quandl.get("ECB/EURUSD")
         prices = pd.read_csv('data/EURUSD_1day.csv',sep=",", skiprows=0, header=0, index_col=0, parse_dates=True, names=['ticker', 'date', 'time', 'open', 'low', 'high', 'close'])
         prices.to_pickle('data/EURUSD_1day.pkl')
     print(prices)
@@ -191,7 +191,7 @@ model.add(LSTM(64,
                stateful=False))
 model.add(Dropout(0.5))
 
-model.add(Dense(4, init='lecun_uniform'))
+model.add(Dense(4, kernel_initializer='lecun_uniform'))
 model.add(Activation('linear')) #linear output so we can have range of real-valued outputs
 
 rms = RMSprop()
@@ -274,21 +274,21 @@ for i in range(epochs):
 
             X_train = np.squeeze(np.array(X_train), axis=(1))
             y_train = np.array(y_train)
-            model.fit(X_train, y_train, batch_size=batchSize, nb_epoch=1, verbose=0)
+            model.fit(X_train, y_train, batch_size=batchSize, epochs=1, verbose=0)
             
             state = new_state
         if terminal_state == 1: #if reached terminal state, update epoch status
             status = 0
     eval_reward = evaluate_Q(test_data, model, price_data, i)
     learning_progress.append((eval_reward))
-    print("Epoch #: %s Reward: %f Epsilon: %f" % (i,eval_reward, epsilon))
+    print("Epoch #: {} Reward: {} Epsilon: {}".format(i, eval_reward, epsilon))
     #learning_progress.append((reward))
     if epsilon > 0.1: #decrement epsilon over time
         epsilon -= (1.0/epochs)
 
 
 elapsed = np.round(timeit.default_timer() - start_time, decimals=2)
-print("Completed in %f" % (elapsed,))
+print("Completed in {}".format(elapsed))
 
 bt = twp.Backtest(pd.Series(data=[x[0,0] for x in xdata]), signal, signalType='shares')
 bt.data['delta'] = bt.data['shares'].diff().fillna(0)
